@@ -87,6 +87,7 @@
 							"sourceMap": true
 						},
             "external": {
+              "deleteOutputPath": false,
               "outputPath": {
                 "base": "../../project-data-assets/shell",
                 "browser": ""

@@ -23,8 +23,8 @@ export class MenuService {
   }
 
   private buildMenuFromManifest(manifest: FederationManifest) {
-    const items: MenuItem[] = Object.entries(manifest.remotes)
-      .filter(([_, config]) => config.metadata.navigation.showInMenu)
+    const allItems: MenuItem[] = Object.entries(manifest.remotes)
+      .filter(([_, config]) => config.metadata.navigation.showInSidebar)
       .map(([name, config]) => ({
         name,
         label: config.metadata.menuItem?.label || config.metadata.displayName,
@@ -34,11 +34,36 @@ export class MenuService {
         category: config.metadata.navigation.category || 'Other',
         badge: config.metadata.menuItem?.badge,
         permissions: config.metadata.menuItem?.permissions || [],
-        dividerAfter: config.metadata.menuItem?.dividerAfter
-      }))
-      .sort((a, b) => a.order - b.order);
+        dividerAfter: config.metadata.menuItem?.dividerAfter,
+        description: config.metadata.description,
+        visible: config.metadata.menuItem?.visible !== false,
+        parent: config.metadata.menuItem?.parent,
+        children: []
+      }));
 
-    this._menuItems.set(items);
+    const itemMap = new Map<string, MenuItem>();
+    allItems.forEach(item => itemMap.set(item.name, item));
+
+    const rootItems: MenuItem[] = [];
+    allItems.forEach(item => {
+      if (item.parent && itemMap.has(item.parent)) {
+        itemMap.get(item.parent)!.children?.push(item);
+      } else {
+        rootItems.push(item);
+      }
+    });
+
+    const sortItems = (items: MenuItem[]) => {
+      items.sort((a, b) => a.order - b.order);
+      items.forEach(item => {
+        if (item.children && item.children.length > 0) {
+          sortItems(item.children);
+        }
+      });
+    };
+
+    sortItems(rootItems);
+    this._menuItems.set(rootItems);
   }
 
   getMenuItemsByCategory(category: string): MenuItem[] {

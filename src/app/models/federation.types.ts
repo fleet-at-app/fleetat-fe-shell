@@ -75,4 +75,8 @@ export interface MenuItem {
   badge?: string;
   permissions: string[];
   dividerAfter?: boolean;
+  description?: string;
+  visible: boolean;
+  parent?: string | null;
+  children?: MenuItem[];
 }
