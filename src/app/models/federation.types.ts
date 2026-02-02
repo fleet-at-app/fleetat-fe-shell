@@ -38,6 +38,7 @@ export interface RemoteMetadata {
   description: string;
   icon: string;
   basePath: string;
+  exposedModule?: string;
   menuItem?: MenuItemMetadata;
   routes?: RouteMetadata[];
   navigation: NavigationMetadata;

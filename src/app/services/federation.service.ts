@@ -1,11 +1,11 @@
-import { inject, Injectable } from '@angular/core';
+import {inject, Injectable, Injector} from '@angular/core';
 import { Router, Routes } from '@angular/router';
 import { loadRemoteModule } from '@angular-architects/native-federation';
 import { FederationManifest, RemoteConfig } from '../models/federation.types';
 
 @Injectable({ providedIn: 'root' })
 export class FederationService {
-  private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
   private manifest: FederationManifest | null = (window as any).federationManifest || null;
   private routesRegistered = false;
 
@@ -37,30 +37,34 @@ export class FederationService {
   private registerRemoteRoutes() {
     if (!this.manifest || this.routesRegistered) return;
 
-    const routes: Routes = [];
+    const router = this.injector.get(Router);
 
-    Object.entries(this.manifest.remotes).forEach(([remoteName, config]) => {
-      const remoteRoutes = config.metadata.routes || [];
+    const remoteRoutes: Routes = Object.entries(this.manifest.remotes)
+      .filter(([_, config]) => config.metadata.basePath)
+      .map(([remoteName, config]) => ({
+        path: config.metadata.basePath.replace(/^\//, ''),
+        loadChildren: () =>
+          loadRemoteModule({
+            remoteName,
+            exposedModule: config.metadata.exposedModule || './routes',
+          }).then((m) => m.default || m.routes || m),
+      }));
 
-      remoteRoutes.forEach(route => {
-        routes.push({
-          path: route.path.replace(/^\//, ''), // Remove leading slash
-          loadChildren: () =>
-            loadRemoteModule({
-              remoteName,
-              exposedModule: route.component
-            }).then(m => m.default || m)
-        });
-      });
-    });
+    const currentConfig = router.config;
+    const wildcardIndex = currentConfig.findIndex((r) => r.path === '**');
 
-    // Add routes dynamically
-    this.router.resetConfig([
-      ...this.router.config,
-      ...routes,
-      { path: '**', redirectTo: '' }
-    ]);
+    let newConfig: Routes;
+    if (wildcardIndex !== -1) {
+      newConfig = [
+        ...currentConfig.slice(0, wildcardIndex),
+        ...remoteRoutes,
+        ...currentConfig.slice(wildcardIndex),
+      ];
+    } else {
+      newConfig = [...currentConfig, ...remoteRoutes];
+    }
 
+    router.resetConfig(newConfig);
     this.routesRegistered = true;
   }
 
