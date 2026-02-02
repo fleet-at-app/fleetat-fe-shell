@@ -1,0 +1,71 @@
+<nav class="sidebar" role="navigation" aria-label="Main Navigation">
+  <div class="logo">Fleet At</div>
+
+  @for (category of menuService.menuCategories(); track category) {
+    <div class="category-group">
+      <button class="category-toggle"
+              (click)="toggleCategory(category)"
+              [attr.aria-expanded]="isCategoryExpanded(category)"
+              [attr.aria-controls]="'category-list-' + category">
+        <h3 [id]="'category-title-' + category">{{ category }}</h3>
+        <i class="icon-chevron-down transition-transform"
+           [class.rotate-180]="isCategoryExpanded(category)"
+           aria-hidden="true"></i>
+      </button>
+
+      <div class="expand-container" [class.expanded]="isCategoryExpanded(category)">
+        <ul class="expand-content" [id]="'category-list-' + category" [attr.aria-labelledby]="'category-title-' + category">
+          @for (item of menuService.getMenuItemsByCategory(category); track item.name) {
+            <ng-container [ngTemplateOutlet]="menuItemTemplate" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
+          }
+        </ul>
+      </div>
+    </div>
+  }
+
+  <ng-template #menuItemTemplate let-item>
+    @if (item.visible && hasPermission(item)) {
+      <li>
+        <div class="menu-item-container" [class.has-children]="item.children && item.children.length > 0">
+          <a [routerLink]="item.basePath"
+             [attr.title]="item.description"
+             routerLinkActive="active-link"
+             [routerLinkActiveOptions]="{ exact: false }"
+             class="menu-link">
+            <i [class]="'icon-' + item.icon" aria-hidden="true"></i>
+            <span class="label">{{ item.label }}</span>
+
+            @if (item.badge) {
+              <span class="badge" aria-label="Notification">{{ item.badge }}</span>
+            }
+          </a>
+
+          @if (item.children && item.children.length > 0) {
+            <button class="toggle-btn"
+                    (click)="toggleExpand(item.name)"
+                    [attr.aria-expanded]="isExpanded(item.name)"
+                    [attr.aria-label]="isExpanded(item.name) ? 'Collapse' : 'Expand'">
+              <i class="icon-chevron-down transition-transform"
+                 [class.rotate-180]="isExpanded(item.name)"
+                 aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+
+        @if (item.children && item.children.length > 0) {
+          <div class="expand-container" [class.expanded]="isExpanded(item.name)">
+            <ul class="nested-menu expand-content" role="group">
+              @for (child of item.children; track child.name) {
+                <ng-container [ngTemplateOutlet]="menuItemTemplate" [ngTemplateOutletContext]="{ $implicit: child }"></ng-container>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (item.dividerAfter) {
+          <hr aria-hidden="true">
+        }
+      </li>
+    }
+  </ng-template>
+</nav>
