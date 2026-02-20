@@ -1,7 +1,8 @@
 import { initFederation } from '@angular-architects/native-federation';
+import { environment } from './environments/environment';
 
 // Point this to your Discovery API endpoint provided by your fleetat-fe-server
-const DISCOVERY_URL = 'http://localhost/api/manifest';
+const DISCOVERY_URL = environment.discoveryUrl;
 
 fetch(DISCOVERY_URL)
   .then(res => {
